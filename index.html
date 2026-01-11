@@ -845,6 +845,82 @@
             border-top: 1px solid #f0f0f0;
             margin-top: 15px;
         }
+
+        /* Navigation Styles */
+        .nav-bar {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .nav-item {
+            flex: 1;
+            text-align: center;
+            padding: 20px 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+            color: #666;
+            font-weight: 500;
+            font-size: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .nav-item:hover {
+            background: #f8f9fa;
+            color: #4facfe;
+        }
+
+        .nav-item.active {
+            color: #4facfe;
+            border-bottom-color: #4facfe;
+            background: #f8fcff;
+        }
+
+        .nav-icon {
+            font-size: 24px;
+        }
+
+        .nav-text {
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .nav-item {
+                padding: 15px 10px;
+            }
+            
+            .nav-text {
+                font-size: 12px;
+            }
+
+            .nav-icon {
+                font-size: 20px;
+            }
+        }
+
+        /* Page Container Styles */
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -854,10 +930,33 @@
             <p>Calculate fair contributions based on proportional income</p>
         </div>
 
+        <!-- Navigation Bar -->
+        <nav class="nav-bar">
+            <div class="nav-container">
+                <div class="nav-item active" onclick="showPage('calculator')">
+                    <div class="nav-icon">💡</div>
+                    <div class="nav-text">Calculator</div>
+                </div>
+                <div class="nav-item" onclick="showPage('history')">
+                    <div class="nav-icon">📈</div>
+                    <div class="nav-text">History</div>
+                </div>
+                <div class="nav-item" onclick="showPage('settings')">
+                    <div class="nav-icon">⚙️</div>
+                    <div class="nav-text">Settings</div>
+                </div>
+                <div class="nav-item" onclick="showPage('data')">
+                    <div class="nav-icon">📁</div>
+                    <div class="nav-text">Data</div>
+                </div>
+            </div>
+        </nav>
+
         <div class="main-content">
             <div id="alerts"></div>
 
-            <!-- Input Section -->
+            <!-- Calculator Page -->
+            <div id="calculatorPage" class="page active">
             <div class="section">
                 <h2>💼 Income & Budget Setup</h2>
                 
@@ -953,15 +1052,24 @@
             <div class="results" id="results" style="display: none;">
                 <h3>📊 Contribution Breakdown</h3>
                 <div id="calculationResults"></div>
+                <div style="margin-top: 20px; text-align: center;">
+                    <button class="button secondary" onclick="emailBudget()" style="margin-right: 10px;">📧 Email Budget Breakdown</button>
+                </div>
             </div>
+            </div>
+            <!-- End Calculator Page -->
 
-            <!-- History Section -->
+            <!-- History Page -->
+            <div id="historyPage" class="page">
             <div class="section">
                 <h2>📈 History</h2>
                 <div id="historyTable"></div>
             </div>
+            </div>
+            <!-- End History Page -->
 
-            <!-- Settings Section -->
+            <!-- Settings Page -->
+            <div id="settingsPage" class="page">
             <div class="section">
                 <h2>⚙️ Settings & Configuration</h2>
                 
@@ -972,6 +1080,10 @@
                             <label for="partner1NameSetting">Display Name:</label>
                             <input type="text" id="partner1NameSetting" placeholder="e.g., Stefan" onchange="updatePartnerNames()">
                         </div>
+                        <div class="input-group">
+                            <label for="partner1EmailSetting">Email Address:</label>
+                            <input type="email" id="partner1EmailSetting" placeholder="e.g., stefan@example.com" onchange="updatePartnerEmails()">
+                        </div>
                     </div>
                     
                     <div class="partner-card">
@@ -979,6 +1091,10 @@
                         <div class="input-group">
                             <label for="partner2NameSetting">Display Name:</label>
                             <input type="text" id="partner2NameSetting" placeholder="e.g., Alex" onchange="updatePartnerNames()">
+                        </div>
+                        <div class="input-group">
+                            <label for="partner2EmailSetting">Email Address:</label>
+                            <input type="email" id="partner2EmailSetting" placeholder="e.g., alex@example.com" onchange="updatePartnerEmails()">
                         </div>
                     </div>
                 </div>
@@ -995,8 +1111,11 @@
                     </select>
                 </div>
             </div>
+            </div>
+            <!-- End Settings Page -->
 
-            <!-- Data Management Section -->
+            <!-- Data Management Page -->
+            <div id="dataPage" class="page">
             <div class="section">
                 <h2>📁 Data Management</h2>
                 <div class="file-section">
@@ -1009,6 +1128,9 @@
                     <button class="button secondary" onclick="clearData()">🗑️ Clear All Data</button>
                 </div>
             </div>
+            </div>
+            <!-- End Data Management Page -->
+
         </div>
     </div>
 
@@ -1018,12 +1140,48 @@
         let settings = {
             partner1Name: 'Partner 1',
             partner2Name: 'Partner 2',
+            partner1Email: '',
+            partner2Email: '',
             currency: 'USD'
         };
         
         let currentPickerYear = new Date().getFullYear();
         let selectedMonth = new Date().getMonth() + 1;
         let selectedYear = new Date().getFullYear();
+
+        // Page navigation
+        function showPage(pageName) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // Remove active state from all nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Show selected page
+            const pageMap = {
+                'calculator': 'calculatorPage',
+                'history': 'historyPage',
+                'settings': 'settingsPage',
+                'data': 'dataPage'
+            };
+            
+            const pageId = pageMap[pageName];
+            if (pageId) {
+                document.getElementById(pageId).classList.add('active');
+            }
+            
+            // Set active nav item
+            event.currentTarget.classList.add('active');
+            
+            // Refresh data when navigating to history page
+            if (pageName === 'history') {
+                updateHistoryTable();
+            }
+        }
 
         // Currency symbols mapping
         const currencySymbols = {
@@ -1047,6 +1205,8 @@
                 settings = JSON.parse(savedSettings);
                 document.getElementById('partner1NameSetting').value = settings.partner1Name;
                 document.getElementById('partner2NameSetting').value = settings.partner2Name;
+                document.getElementById('partner1EmailSetting').value = settings.partner1Email || '';
+                document.getElementById('partner2EmailSetting').value = settings.partner2Email || '';
                 document.getElementById('currencySetting').value = settings.currency;
                 updatePartnerNames();
                 updateCurrency();
@@ -1389,6 +1549,17 @@
             updateExpensesList();
         }
 
+        // Update partner emails in settings
+        function updatePartnerEmails() {
+            const partner1Email = document.getElementById('partner1EmailSetting').value || '';
+            const partner2Email = document.getElementById('partner2EmailSetting').value || '';
+            
+            settings.partner1Email = partner1Email;
+            settings.partner2Email = partner2Email;
+            
+            saveSettings();
+        }
+
         // Add new expense
         function addExpense() {
             // First check if income and budget are valid
@@ -1471,6 +1642,7 @@
             expenses.forEach((expense, index) => {
                 const expenseDate = new Date(expense.date).toLocaleDateString();
                 const symbol = currencySymbols[expense.currency] || currencySymbols[settings.currency];
+                const formattedAmount = formatNumber(expense.amount);
                 
                 html += `
                     <div class="expense-item">
@@ -1478,7 +1650,7 @@
                             <div class="expense-description">${expense.description}</div>
                             <div class="expense-meta">Paid by ${expense.whoPaidName} on ${expenseDate}</div>
                         </div>
-                        <div class="expense-amount">${symbol}${expense.amount}</div>
+                        <div class="expense-amount">${symbol}${formattedAmount}</div>
                         <div class="expense-actions">
                             <button class="delete-btn" onclick="deleteExpense(${index})">Delete</button>
                         </div>
@@ -1524,18 +1696,18 @@
                 .reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
             const totalExpenses = partner1Expenses + partner2Expenses;
             
-            // Add expenses to the budget for calculation
-            const adjustedBudget = monthlyBudget + totalExpenses;
+            // Subtract expenses from the budget to get remaining budget
+            const adjustedBudget = monthlyBudget - totalExpenses;
             const totalIncome = partner1Income + partner2Income;
             
-            // Calculate base contributions based on adjusted budget
-            const partner1BaseContribution = (partner1Income / totalIncome) * adjustedBudget;
-            const partner2BaseContribution = (partner2Income / totalIncome) * adjustedBudget;
+            // Calculate base contributions based on monthly budget
+            const partner1BaseContribution = (partner1Income / totalIncome) * monthlyBudget;
+            const partner2BaseContribution = (partner2Income / totalIncome) * monthlyBudget;
             
-            // Adjust contributions by subtracting their expenses (reimbursement)
+            // Add back their own expenses to get final contribution (they already paid these)
             const partner1FinalContribution = partner1BaseContribution - partner1Expenses;
             const partner2FinalContribution = partner2BaseContribution - partner2Expenses;
-            
+
             // Format the budget period for display
             const monthName = monthNames[selectedMonth - 1];
             const budgetPeriodDisplay = `${monthName} ${selectedYear}`;
@@ -1545,11 +1717,13 @@
                 budgetPeriod: getBudgetPeriod(),
                 partner1Name: settings.partner1Name,
                 partner1Income: partner1Income.toFixed(2),
+                partner1BaseContribution: partner1BaseContribution.toFixed(2),
                 partner1Expenses: partner1Expenses.toFixed(2),
                 partner1Contribution: partner1FinalContribution.toFixed(2),
                 partner1Percentage: ((partner1BaseContribution / partner1Income) * 100).toFixed(1),
                 partner2Name: settings.partner2Name,
                 partner2Income: partner2Income.toFixed(2),
+                partner2BaseContribution: partner2BaseContribution.toFixed(2),
                 partner2Expenses: partner2Expenses.toFixed(2),
                 partner2Contribution: partner2FinalContribution.toFixed(2),
                 partner2Percentage: ((partner2BaseContribution / partner2Income) * 100).toFixed(1),
@@ -1562,7 +1736,6 @@
             
             displayResults(previewData);
         }
-
         // Clear all expenses
         function clearExpenses() {
             if (confirm('Are you sure you want to clear all expenses?')) {
@@ -1612,7 +1785,19 @@
         // Format currency value
         function formatCurrency(amount) {
             const symbol = currencySymbols[settings.currency];
-            return `${symbol}${parseFloat(amount).toFixed(2)}`;
+            const number = parseFloat(amount).toFixed(2);
+            // Add thousand separators
+            const parts = number.split('.');
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            return `${symbol}${parts.join('.')}`;
+        }
+
+        // Format number with thousand separators (without currency symbol)
+        function formatNumber(amount) {
+            const number = parseFloat(amount).toFixed(2);
+            const parts = number.split('.');
+            parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            return parts.join('.');
         }
 
         // Load CSV file
@@ -1623,8 +1808,27 @@
                 reader.onload = function(e) {
                     try {
                         const csv = e.target.result;
-                        budgetData = parseCSV(csv);
-                        showAlert('CSV file loaded successfully!', 'success');
+                        const result = parseCSV(csv);
+                        
+                        // Load settings if available
+                        if (result.settings) {
+                            settings = { ...settings, ...result.settings };
+                            document.getElementById('partner1NameSetting').value = settings.partner1Name;
+                            document.getElementById('partner2NameSetting').value = settings.partner2Name;
+                            document.getElementById('partner1EmailSetting').value = settings.partner1Email || '';
+                            document.getElementById('partner2EmailSetting').value = settings.partner2Email || '';
+                            document.getElementById('currencySetting').value = settings.currency;
+                            updatePartnerNames();
+                            updateCurrency();
+                            saveSettings();
+                        }
+                        
+                        // Load budget data
+                        if (result.budgetData && result.budgetData.length > 0) {
+                            budgetData = result.budgetData;
+                        }
+                        
+                        showAlert('CSV file loaded successfully with settings!', 'success');
                         updateHistoryTable();
                         setDefaultValues(); // Set defaults after loading CSV
                     } catch (error) {
@@ -1637,22 +1841,85 @@
 
         function parseCSV(csv) {
             const lines = csv.trim().split('\n');
-            if (lines.length < 2) return [];
+            if (lines.length < 2) return { budgetData: [], settings: null };
             
-            const headers = lines[0].split(',');
-            const data = [];
+            let currentSection = null;
+            const result = {
+                budgetData: [],
+                settings: {}
+            };
+            let budgetHeaders = [];
             
-            for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(',');
-                if (values.length === headers.length) {
-                    const entry = {};
-                    headers.forEach((header, index) => {
-                        entry[header.trim()] = values[index].trim();
-                    });
-                    data.push(entry);
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                
+                // Detect sections
+                if (line === 'Settings') {
+                    currentSection = 'settings';
+                    i++; // Skip header row
+                    continue;
+                } else if (line === 'Budget Calculations') {
+                    currentSection = 'budget';
+                    continue;
+                } else if (line === 'Expense Details') {
+                    currentSection = 'expenses';
+                    i++; // Skip header row
+                    continue;
+                } else if (line === '' || line === 'No expenses recorded') {
+                    continue;
+                }
+                
+                // Parse settings
+                if (currentSection === 'settings' && line.includes(',')) {
+                    const [key, value] = line.split(',').map(s => s.trim());
+                    if (key === 'Partner 1 Name') result.settings.partner1Name = value;
+                    else if (key === 'Partner 1 Email') result.settings.partner1Email = value;
+                    else if (key === 'Partner 2 Name') result.settings.partner2Name = value;
+                    else if (key === 'Partner 2 Email') result.settings.partner2Email = value;
+                    else if (key === 'Currency') result.settings.currency = value;
+                }
+                
+                // Parse budget data
+                if (currentSection === 'budget') {
+                    const values = line.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+                    
+                    // Check if this is the header row
+                    if (budgetHeaders.length === 0 && values.includes('date')) {
+                        budgetHeaders = values;
+                    } else if (budgetHeaders.length > 0 && values.length === budgetHeaders.length) {
+                        const entry = {};
+                        budgetHeaders.forEach((header, index) => {
+                            entry[header] = values[index];
+                        });
+                        // Initialize expenses array for each entry
+                        entry.expenses = [];
+                        result.budgetData.push(entry);
+                    }
+                }
+                
+                // Parse expenses (associate with budget entries)
+                if (currentSection === 'expenses' && line.includes(',')) {
+                    const parts = line.match(/([^,]+),([^,]+),"([^"]+)",([^,]+),([^,]+),([^,]+)/);
+                    if (parts && parts.length === 7) {
+                        const [, budgetPeriod, date, description, whoPaidName, amount, currency] = parts;
+                        const budgetEntry = result.budgetData.find(e => e.budgetPeriod === budgetPeriod.trim());
+                        if (budgetEntry) {
+                            if (!budgetEntry.expenses) budgetEntry.expenses = [];
+                            budgetEntry.expenses.push({
+                                id: Date.now() + Math.random(),
+                                description: description.trim(),
+                                whoPaid: whoPaidName.includes(result.settings.partner1Name || 'Partner 1') ? 'partner1' : 'partner2',
+                                whoPaidName: whoPaidName.trim(),
+                                date: date.trim(),
+                                amount: amount.trim(),
+                                currency: currency.trim()
+                            });
+                        }
+                    }
                 }
             }
-            return data;
+            
+            return result;
         }
 
         function calculateAndSave() {
@@ -1686,20 +1953,20 @@
                 .reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
             const totalExpenses = partner1Expenses + partner2Expenses;
             
-            // Add expenses to the budget for calculation
-            const adjustedBudget = monthlyBudget + totalExpenses;
+            // Subtract expenses from the budget to get remaining budget
+            const adjustedBudget = monthlyBudget - totalExpenses;
             const totalIncome = partner1Income + partner2Income;
             const contributionPercentage = (adjustedBudget / totalIncome) * 100;
             
-            if (contributionPercentage > 100) {
-                showAlert('Warning: Monthly budget plus expenses exceeds combined income!', 'error');
+            if (adjustedBudget < 0) {
+                showAlert('Warning: Total expenses exceed the monthly budget!', 'error');
             }
 
-            // Calculate base contributions based on adjusted budget
-            const partner1BaseContribution = (partner1Income / totalIncome) * adjustedBudget;
-            const partner2BaseContribution = (partner2Income / totalIncome) * adjustedBudget;
-            
-            // Adjust contributions by subtracting their expenses (reimbursement)
+            // Calculate base contributions based on monthly budget
+            const partner1BaseContribution = (partner1Income / totalIncome) * monthlyBudget;
+            const partner2BaseContribution = (partner2Income / totalIncome) * monthlyBudget;
+
+            // Add back their own expenses to get final contribution (they already paid these)
             const partner1FinalContribution = partner1BaseContribution - partner1Expenses;
             const partner2FinalContribution = partner2BaseContribution - partner2Expenses;
 
@@ -1709,11 +1976,13 @@
                 budgetPeriod: budgetPeriod,
                 partner1Name: partner1Name,
                 partner1Income: partner1Income.toFixed(2),
+                partner1BaseContribution: partner1BaseContribution.toFixed(2),
                 partner1Expenses: partner1Expenses.toFixed(2),
                 partner1Contribution: partner1FinalContribution.toFixed(2),
                 partner1Percentage: ((partner1BaseContribution / partner1Income) * 100).toFixed(1),
                 partner2Name: partner2Name,
                 partner2Income: partner2Income.toFixed(2),
+                partner2BaseContribution: partner2BaseContribution.toFixed(2),
                 partner2Expenses: partner2Expenses.toFixed(2),
                 partner2Contribution: partner2FinalContribution.toFixed(2),
                 partner2Percentage: ((partner2BaseContribution / partner2Income) * 100).toFixed(1),
@@ -1776,7 +2045,7 @@
                             <div class="summary-item-value">${formatCurrency(data.totalExpenses || 0)}</div>
                         </div>
                         <div class="summary-item">
-                            <div class="summary-item-label">Adjusted Budget</div>
+                            <div class="summary-item-label">Remaining Budget</div>
                             <div class="summary-item-value highlight">${formatCurrency(data.adjustedBudget || data.monthlyBudget)}</div>
                         </div>
                     </div>
@@ -1793,11 +2062,15 @@
                             <span class="partner-result-value">${formatCurrency(data.partner1Income)}</span>
                         </div>
                         <div class="partner-result-item">
+                            <span class="partner-result-label">Base Contribution:</span>
+                            <span class="partner-result-value">${formatCurrency(data.partner1BaseContribution)}</span>
+                        </div>
+                        <div class="partner-result-item">
                             <span class="partner-result-label">Expenses Paid:</span>
                             <span class="partner-result-value">${formatCurrency(data.partner1Expenses || 0)}</span>
                         </div>
                         <div class="partner-result-item">
-                            <span class="partner-result-label">Income Percentage:</span>
+                            <span class="partner-result-label">Budget Percentage:</span>
                             <span class="partner-result-value">${((parseFloat(data.partner1Income) / parseFloat(data.totalIncome)) * 100).toFixed(1)}%</span>
                         </div>
                         <div class="partner-contribution-highlight">
@@ -1815,11 +2088,15 @@
                             <span class="partner-result-value">${formatCurrency(data.partner2Income)}</span>
                         </div>
                         <div class="partner-result-item">
+                            <span class="partner-result-label">Base Contribution:</span>
+                            <span class="partner-result-value">${formatCurrency(data.partner2BaseContribution)}</span>
+                        </div>
+                        <div class="partner-result-item">
                             <span class="partner-result-label">Expenses Paid:</span>
                             <span class="partner-result-value">${formatCurrency(data.partner2Expenses || 0)}</span>
                         </div>
                         <div class="partner-result-item">
-                            <span class="partner-result-label">Income Percentage:</span>
+                            <span class="partner-result-label">Budget Percentage:</span>
                             <span class="partner-result-value">${((parseFloat(data.partner2Income) / parseFloat(data.totalIncome)) * 100).toFixed(1)}%</span>
                         </div>
                         <div class="partner-contribution-highlight">
@@ -1867,6 +2144,12 @@
                 // Find the original index in budgetData for delete button
                 const originalIndex = budgetData.findIndex(e => e.budgetPeriod === entry.budgetPeriod);
                 
+                // Format currency values
+                const formattedTotalIncome = formatNumber(entry.totalIncome);
+                const formattedAdjustedBudget = formatNumber(entry.adjustedBudget || entry.monthlyBudget);
+                const formattedPartner1Contribution = formatNumber(entry.partner1Contribution);
+                const formattedPartner2Contribution = formatNumber(entry.partner2Contribution);
+                
                 cardsHTML += `
                     <div class="history-card">
                         <div class="history-card-header">
@@ -1877,23 +2160,23 @@
                         <div class="history-summary">
                             <div class="history-summary-item">
                                 <div class="history-summary-label">Total Income</div>
-                                <div class="history-summary-value">${entrySymbol}${entry.totalIncome}</div>
+                                <div class="history-summary-value">${entrySymbol}${formattedTotalIncome}</div>
                             </div>
                             <div class="history-summary-item">
-                                <div class="history-summary-label">Adjusted Budget</div>
-                                <div class="history-summary-value">${entrySymbol}${entry.adjustedBudget || entry.monthlyBudget}</div>
+                                <div class="history-summary-label">Remaining Budget</div>
+                                <div class="history-summary-value">${entrySymbol}${formattedAdjustedBudget}</div>
                             </div>
                         </div>
                         
                         <div class="history-contributions">
                             <div class="history-partner">
                                 <div class="history-partner-name">${entry.partner1Name}</div>
-                                <div class="history-partner-contribution">${entrySymbol}${entry.partner1Contribution}</div>
+                                <div class="history-partner-contribution">${entrySymbol}${formattedPartner1Contribution}</div>
                                 <div style="font-size: 12px; color: #666; margin-top: 2px;">${entry.partner1Percentage}% of income</div>
                             </div>
                             <div class="history-partner">
                                 <div class="history-partner-name">${entry.partner2Name}</div>
-                                <div class="history-partner-contribution">${entrySymbol}${entry.partner2Contribution}</div>
+                                <div class="history-partner-contribution">${entrySymbol}${formattedPartner2Contribution}</div>
                                 <div style="font-size: 12px; color: #666; margin-top: 2px;">${entry.partner2Percentage}% of income</div>
                             </div>
                         </div>
@@ -1911,6 +2194,7 @@
                     entry.expenses.forEach(expense => {
                         const expenseDate = new Date(expense.date).toLocaleDateString();
                         const expenseSymbol = currencySymbols[expense.currency] || entrySymbol;
+                        const formattedExpenseAmount = formatNumber(expense.amount);
                         
                         cardsHTML += `
                             <div class="history-expense-item">
@@ -1918,7 +2202,7 @@
                                     <div class="history-expense-description">${expense.description}</div>
                                     <div class="history-expense-meta">Paid by ${expense.whoPaidName} on ${expenseDate}</div>
                                 </div>
-                                <div class="history-expense-amount">${expenseSymbol}${expense.amount}</div>
+                                <div class="history-expense-amount">${expenseSymbol}${formattedExpenseAmount}</div>
                             </div>
                         `;
                     });
@@ -1966,30 +2250,54 @@
         }
 
         function downloadCSV() {
-            if (budgetData.length === 0) {
+            if (budgetData.length === 0 && Object.keys(settings).length === 0) {
                 showAlert('No data to download. Add some calculations first!', 'error');
                 return;
             }
 
-            // Create CSV with budget data
-            const budgetHeaders = Object.keys(budgetData[0]).filter(key => key !== 'expenses');
-            let csv = budgetHeaders.join(',') + '\n';
-            
-            budgetData.forEach(entry => {
-                csv += budgetHeaders.map(header => entry[header] || '').join(',') + '\n';
-            });
+            let csv = '';
 
-            // Add expense details section
+            // Settings Section
+            csv += 'Settings\n';
+            csv += 'Setting,Value\n';
+            csv += `Partner 1 Name,${settings.partner1Name}\n`;
+            csv += `Partner 1 Email,${settings.partner1Email || ''}\n`;
+            csv += `Partner 2 Name,${settings.partner2Name}\n`;
+            csv += `Partner 2 Email,${settings.partner2Email || ''}\n`;
+            csv += `Currency,${settings.currency}\n`;
+
+            // Budget Data Section
+            if (budgetData.length > 0) {
+                csv += '\n\nBudget Calculations\n';
+                const budgetHeaders = Object.keys(budgetData[0]).filter(key => key !== 'expenses');
+                csv += budgetHeaders.join(',') + '\n';
+                
+                budgetData.forEach(entry => {
+                    csv += budgetHeaders.map(header => {
+                        const value = entry[header] || '';
+                        // Escape values that contain commas
+                        return value.toString().includes(',') ? `"${value}"` : value;
+                    }).join(',') + '\n';
+                });
+            }
+
+            // Expense Details Section
             csv += '\n\nExpense Details\n';
             csv += 'Budget Period,Date,Description,Who Paid,Amount,Currency\n';
             
+            let hasExpenses = false;
             budgetData.forEach(entry => {
                 if (entry.expenses && entry.expenses.length > 0) {
+                    hasExpenses = true;
                     entry.expenses.forEach(expense => {
                         csv += `${entry.budgetPeriod},${expense.date},"${expense.description}",${expense.whoPaidName},${expense.amount},${expense.currency}\n`;
                     });
                 }
             });
+
+            if (!hasExpenses) {
+                csv += 'No expenses recorded\n';
+            }
 
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = window.URL.createObjectURL(blob);
@@ -2001,7 +2309,128 @@
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
             
-            showAlert('CSV file downloaded successfully!', 'success');
+            showAlert('CSV file downloaded successfully with settings!', 'success');
+        }
+
+        function emailBudget() {
+            // Check if email addresses are configured
+            if (!settings.partner1Email && !settings.partner2Email) {
+                showAlert('Please configure email addresses in Settings first!', 'error');
+                return;
+            }
+
+            // Check if there's a current calculation to email
+            const resultsDiv = document.getElementById('results');
+            if (resultsDiv.style.display === 'none') {
+                showAlert('Please calculate and save a budget first!', 'error');
+                return;
+            }
+
+            // Get the current budget period
+            const currentPeriod = getBudgetPeriod();
+            const savedEntry = budgetData.find(entry => entry.budgetPeriod === currentPeriod);
+            
+            if (!savedEntry) {
+                showAlert('Please save your calculation first before emailing!', 'error');
+                return;
+            }
+
+            // Generate CSV content for attachment
+            let csv = '';
+            csv += 'Settings\n';
+            csv += 'Setting,Value\n';
+            csv += `Partner 1 Name,${settings.partner1Name}\n`;
+            csv += `Partner 2 Name,${settings.partner2Name}\n`;
+            csv += `Currency,${settings.currency}\n`;
+            csv += '\n\nBudget Calculations\n';
+            const budgetHeaders = Object.keys(savedEntry).filter(key => key !== 'expenses');
+            csv += budgetHeaders.join(',') + '\n';
+            csv += budgetHeaders.map(header => {
+                const value = savedEntry[header] || '';
+                return value.toString().includes(',') ? `"${value}"` : value;
+            }).join(',') + '\n';
+            csv += '\n\nExpense Details\n';
+            csv += 'Budget Period,Date,Description,Who Paid,Amount,Currency\n';
+            if (savedEntry.expenses && savedEntry.expenses.length > 0) {
+                savedEntry.expenses.forEach(expense => {
+                    csv += `${savedEntry.budgetPeriod},${expense.date},"${expense.description}",${expense.whoPaidName},${expense.amount},${expense.currency}\n`;
+                });
+            } else {
+                csv += 'No expenses recorded\n';
+            }
+
+            // Format the budget period for display
+            const [year, month] = savedEntry.budgetPeriod.split('-');
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                              'July', 'August', 'September', 'October', 'November', 'December'];
+            const monthName = monthNames[parseInt(month) - 1];
+            const budgetPeriodDisplay = `${monthName} ${year}`;
+
+            // Calculate base contributions if not available in saved entry
+            const totalIncome = parseFloat(savedEntry.totalIncome);
+            const monthlyBudget = parseFloat(savedEntry.monthlyBudget);
+            const partner1BaseContribution = savedEntry.partner1BaseContribution ? 
+                parseFloat(savedEntry.partner1BaseContribution) : 
+                (parseFloat(savedEntry.partner1Income) / totalIncome) * monthlyBudget;
+            const partner2BaseContribution = savedEntry.partner2BaseContribution ? 
+                parseFloat(savedEntry.partner2BaseContribution) : 
+                (parseFloat(savedEntry.partner2Income) / totalIncome) * monthlyBudget;
+
+            // Create email body with budget breakdown
+            const emailSubject = `Budget Breakdown for ${budgetPeriodDisplay}`;
+            const emailBody = `Hi ${settings.partner1Name} and ${settings.partner2Name},
+
+Here is the budget breakdown for ${budgetPeriodDisplay}:
+
+📊 BUDGET SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total Combined Income: ${formatCurrency(savedEntry.totalIncome)}
+Monthly Budget Target: ${formatCurrency(savedEntry.monthlyBudget)}
+Total Expenses: ${formatCurrency(savedEntry.totalExpenses || 0)}
+Remaining Budget: ${formatCurrency(savedEntry.adjustedBudget)}
+
+👤 ${savedEntry.partner1Name.toUpperCase()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Monthly Income: ${formatCurrency(savedEntry.partner1Income)}
+Base Contribution: ${formatCurrency(partner1BaseContribution)}
+Expenses Paid: ${formatCurrency(savedEntry.partner1Expenses || 0)}
+Budget Percentage: ${((parseFloat(savedEntry.partner1Income) / parseFloat(savedEntry.totalIncome)) * 100).toFixed(1)}%
+NET CONTRIBUTION: ${formatCurrency(savedEntry.partner1Contribution)}
+
+👤 ${savedEntry.partner2Name.toUpperCase()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Monthly Income: ${formatCurrency(savedEntry.partner2Income)}
+Base Contribution: ${formatCurrency(partner2BaseContribution)}
+Expenses Paid: ${formatCurrency(savedEntry.partner2Expenses || 0)}
+Budget Percentage: ${((parseFloat(savedEntry.partner2Income) / parseFloat(savedEntry.totalIncome)) * 100).toFixed(1)}%
+NET CONTRIBUTION: ${formatCurrency(savedEntry.partner2Contribution)}
+
+💰 EXPENSE DETAILS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+
+            let expenseList = '';
+            if (savedEntry.expenses && savedEntry.expenses.length > 0) {
+                savedEntry.expenses.forEach(expense => {
+                    expenseList += `\n${expense.date} - ${expense.description}: ${formatCurrency(expense.amount)} (Paid by ${expense.whoPaidName})`;
+                });
+            } else {
+                expenseList = '\nNo expenses recorded for this period.';
+            }
+
+            const fullEmailBody = emailBody + expenseList + `
+
+This budget breakdown was generated by the Couple Budget Calculator.
+You can download the detailed CSV export from the Data Management page.`;
+
+            // Create mailto link with both email addresses
+            const recipients = [settings.partner1Email, settings.partner2Email].filter(email => email).join(',');
+            
+            const mailtoLink = `mailto:${recipients}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(fullEmailBody)}`;
+
+            // Open email client
+            window.location.href = mailtoLink;
+
+            showAlert('Email client opened successfully!', 'success');
         }
 
         function clearData() {
